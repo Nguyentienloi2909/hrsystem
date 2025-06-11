@@ -14,7 +14,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd /services/hrsystem
+            cd /root/services/hrsystem
             git fetch origin 
             git checkout production
             git pull

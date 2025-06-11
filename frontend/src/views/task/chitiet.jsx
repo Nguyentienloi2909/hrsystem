@@ -14,7 +14,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ApiService from 'src/service/ApiService';
 import CommentsSection from './CommentsSection'; // Import the new component
 
-const API_BASE = "http://localhost:7247/api/Comment";
+const API_BASE = "http://222.255.214.117:7247/api/Comment";
 
 function formatDate(isoString) {
     if (!isoString) return 'N/A';

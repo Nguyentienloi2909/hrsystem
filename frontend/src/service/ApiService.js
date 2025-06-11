@@ -2,7 +2,6 @@ import axios from "axios";
 
 export default class ApiService {
     static BASE_URL = "http://222.255.214.117:7247/api";
-    // static BASE_URL = "http://localhost:7247/api";
 
     static getHeader() {
         const token = sessionStorage.getItem('authToken');

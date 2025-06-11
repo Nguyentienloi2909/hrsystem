@@ -166,23 +166,25 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate(); // hoặc db.Database.EnsureCreated();
 }
 
-
-app.UseHangfireDashboard("/hangfire");
-
-// Map Hub vào endpoint
-app.MapHub<NotificationHub>("/notificationHub");
-app.MapHub<ChatHub>("/chatHub");
-
 app.UseCors("AllowFrontend");
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseHangfireDashboard("/hangfire");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+
+// Map Hub vào endpoint
+app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<ChatHub>("/chatHub");
+
+
 
 
 app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.MapControllers();
 

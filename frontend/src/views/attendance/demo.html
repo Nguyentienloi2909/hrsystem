@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý chấm công</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+
+        .toast {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 100;
+        }
+
+        .table-container {
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        @media (max-width: 640px) {
+            .filter-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .filter-bar>* {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <!-- Tiêu đề -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Quản lý chấm công</h1>
+            <p class="text-gray-600">Theo dõi và quản lý chấm công của nhân viên</p>
+        </div>
+
+        <!-- Thống kê nhanh -->
+        <div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-semibold">Có mặt hôm nay</h3>
+                <p class="text-2xl font-bold text-green-600" id="presentCount">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-semibold">Giờ tăng ca (tháng)</h3>
+                <p class="text-2xl font-bold text-blue-600" id="overtimeHours">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-lg shadow">
+                <h3 class="text-lg font-semibold">Nghỉ/Nghỉ phép</h3>
+                <p class="text-2xl font-bold text-red-600" id="absentCount">0</p>
+            </div>
+        </div>
+
+        <!-- Biểu đồ -->
+        <div class="mb-6 bg-white p-4 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-4">Thống kê trạng thái</h3>
+            <canvas id="statusChart" height="100"></canvas>
+        </div>
+
+        <!-- Thanh công cụ -->
+        <div class="filter-bar flex flex-wrap gap-4 mb-4">
+            <input type="text" id="searchInput" placeholder="Tìm kiếm theo tên hoặc mã NV"
+                class="border border-gray-300 rounded-lg p-2 w-48" aria-label="Tìm kiếm nhân viên">
+            <select id="statusFilter" class="border border-gray-300 rounded-lg p-2 w-40"
+                aria-label="Lọc theo trạng thái">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="Present">Có mặt</option>
+                <option value="Absent">Nghỉ</option>
+                <option value="Leave">Nghỉ có phép</option>
+                <option value="Pending">Chưa có mặt</option>
+            </select>
+            <input type="date" id="startDate" class="border border-gray-300 rounded-lg p-2 w-40"
+                aria-label="Ngày bắt đầu">
+            <input type="date" id="endDate" class="border border-gray-300 rounded-lg p-2 w-40"
+                aria-label="Ngày kết thúc">
+            <select id="departmentFilter" class="border border-gray-300 rounded-lg p-2 w-40"
+                aria-label="Lọc theo phòng ban">
+                <option value="all">Tất cả phòng ban</option>
+                <option value="IT">CNTT</option>
+                <option value="HR">Nhân sự</option>
+                <option value="Sales">Kinh doanh</option>
+            </select>
+            <button id="addBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
+                aria-label="Thêm chấm công mới">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Thêm chấm công
+            </button>
+            <button id="exportBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center"
+                aria-label="Xuất báo cáo Excel">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Xuất Excel
+            </button>
+            <input type="file" id="importInput" accept=".xlsx,.xls" class="hidden" aria-label="Nhập dữ liệu từ Excel">
+            <button id="importBtn" class="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center"
+                aria-label="Nhập từ Excel">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 8v8m16-8v8m-4-4l-4-4m0 0l-4 4m4-4v12"></path>
+                </svg>
+                Nhập Excel
+            </button>
+        </div>
+
+        <!-- Bảng chấm công -->
+        <div class="table-container bg-white rounded-lg shadow">
+            <table class="w-full border-collapse" aria-label="Bảng chấm công nhân viên">
+                <thead>
+                    <tr class="bg-blue-100">
+                        <th class="border p-3 text-left">Mã NV</th>
+                        <th class="border p-3 text-left">Họ và tên</th>
+                        <th class="border p-3 text-left">Phòng ban</th>
+                        <th class="border p-3 text-left">Ngày</th>
+                        <th class="border p-3 text-left">Giờ vào</th>
+                        <th class="border p-3 text-left">Giờ ra</th>
+                        <th class="border p-3 text-left">Trạng thái</th>
+                        <th class="border p-3 text-left">Tăng ca (giờ)</th>
+                        <th class="border p-3 text-left">Ghi chú</th>
+                        <th class="border p-3 text-center">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody id="attendanceTable"></tbody>
+            </table>
+            <div class="p-4 flex justify-between items-center">
+                <div>
+                    <select id="rowsPerPage" class="border rounded-lg p-2" aria-label="Số hàng mỗi trang">
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div id="pagination" class="flex gap-2"></div>
+            </div>
+        </div>
+
+        <!-- Modal thêm/chỉnh sửa -->
+        <div id="modal" class="modal">
+            <div class="modal-content">
+                <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
+                <form id="attendanceForm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="userId">Mã NV</label>
+                        <select id="userId" class="w-full border rounded-lg p-2" required aria-label="Chọn nhân viên">
+                            <option value="">Chọn nhân viên</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="workday">Ngày</label>
+                        <input type="date" id="workday" class="w-full border rounded-lg p-2" required
+                            aria-label="Ngày làm việc">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="checkIn">Giờ vào</label>
+                        <input type="time" id="checkIn" class="w-full border rounded-lg p-2" aria-label="Giờ vào">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="checkOut">Giờ ra</label>
+                        <input type="time" id="checkOut" class="w-full border rounded-lg p-2" aria-label="Giờ ra">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="status">Trạng thái</label>
+                        <select id="status" class="w-full border rounded-lg p-2" required
+                            aria-label="Trạng thái chấm công">
+                            <option value="Present">Có mặt</option>
+                            <option value="Absent">Nghỉ</option>
+                            <option value="Leave">Nghỉ có phép</option>
+                            <option value="Pending">Chưa có mặt</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="overtime">Tăng ca (giờ)</label>
+                        <input type="number" id="overtime" min="0" class="w-full border rounded-lg p-2"
+                            aria-label="Số giờ tăng ca">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1" for="note">Ghi chú</label>
+                        <textarea id="note" class="w-full border rounded-lg p-2" rows="3"
+                            aria-label="Ghi chú chấm công"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" id="cancelBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
+                            aria-label="Hủy">Hủy</button>
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg"
+                            aria-label="Lưu chấm công">Lưu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal xóa -->
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-xl font-bold mb-4">Xác nhận xóa</h2>
+                <p>Bạn có chắc chắn muốn xóa bản ghi chấm công này?</p>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button id="cancelDeleteBtn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
+                        aria-label="Hủy xóa">Hủy</button>
+                    <button id="confirmDeleteBtn" class="bg-red-600 text-white px-4 py-2 rounded-lg"
+                        aria-label="Xác nhận xóa">Xóa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast thông báo -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script>
+        // Dữ liệu mẫu
+        let attendanceData = [
+            { id: 1, userId: 'NV001', userFullName: 'Nguyễn Văn A', department: 'CNTT', workday: '2025-05-13', checkIn: '08:00', checkOut: '17:00', status: 'Present', overtime: 2, note: 'Hoàn thành tốt' },
+            { id: 2, userId: 'NV002', userFullName: 'Trần Thị B', department: 'Nhân sự', workday: '2025-05-13', checkIn: '', checkOut: '', status: 'Absent', overtime: 0, note: 'Nghỉ bệnh' },
+            { id: 3, userId: 'NV003', userFullName: 'Lê Văn C', department: 'Kinh doanh', workday: '2025-05-13', checkIn: '08:30', checkOut: '', status: 'Pending', overtime: 0, note: '' }
+        ];
+        const employees = [
+            { userId: 'NV001', userFullName: 'Nguyễn Văn A', department: 'CNTT' },
+            { userId: 'NV002', userFullName: 'Trần Thị B', department: 'Nhân sự' },
+            { userId: 'NV003', userFullName: 'Lê Văn C', department: 'Kinh doanh' }
+        ];
+
+        // State
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let filteredData = [...attendanceData];
+        let editId = null;
+
+        // DOM elements
+        const tableBody = document.getElementById('attendanceTable');
+        const searchInput = document.getElementById('searchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const departmentFilter = document.getElementById('departmentFilter');
+        const startDate = document.getElementById('startDate');
+        const endDate = document.getElementById('endDate');
+        const rowsPerPageSelect = document.getElementById('rowsPerPage');
+        const pagination = document.getElementById('pagination');
+        const modal = document.getElementById('modal');
+        const modalTitle = document.getElementById('modalTitle');
+        const attendanceForm = document.getElementById('attendanceForm');
+        const userIdSelect = document.getElementById('userId');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const toast = document.getElementById('toast');
+        const addBtn = document.getElementById('addBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const importBtn = document.getElementById('importBtn');
+        const importInput = document.getElementById('importInput');
+        const presentCount = document.getElementById('presentCount');
+        const overtimeHours = document.getElementById('overtimeHours');
+        const absentCount = document.getElementById('absentCount');
+
+        // Khởi tạo danh sách nhân viên
+        employees.forEach(emp => {
+            const option = document.createElement('option');
+            option.value = emp.userId;
+            option.textContent = `${emp.userFullName} (${emp.userId})`;
+            userIdSelect.appendChild(option);
+        });
+
+        // Hiển thị thông báo
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        // Cập nhật thống kê
+        function updateStats() {
+            const present = filteredData.filter(row => row.status === 'Present').length;
+            const absent = filteredData.filter(row => row.status === 'Absent' || row.status === 'Leave').length;
+            const overtime = filteredData.reduce((sum, row) => sum + (row.overtime || 0), 0);
+            presentCount.textContent = present;
+            absentCount.textContent = absent;
+            overtimeHours.textContent = overtime.toFixed(1);
+
+            // Cập nhật biểu đồ
+            const chartData = [
+                { name: 'Có mặt', value: filteredData.filter(row => row.status === 'Present').length },
+                { name: 'Nghỉ', value: filteredData.filter(row => row.status === 'Absent').length },
+                { name: 'Nghỉ phép', value: filteredData.filter(row => row.status === 'Leave').length },
+                { name: 'Chưa có mặt', value: filteredData.filter(row => row.status === 'Pending').length }
+            ];
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: chartData.map(d => d.name),
+                    datasets: [{
+                        data: chartData.map(d => d.value),
+                        backgroundColor: ['#388e3c', '#d32f2f', '#0288d1', '#fbc02d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Lọc và hiển thị bảng
+        function renderTable() {
+            filteredData = [...attendanceData];
+
+            // Tìm kiếm
+            const search = searchInput.value.toLowerCase();
+            if (search) {
+                filteredData = filteredData.filter(
+                    row => row.userFullName.toLowerCase().includes(search) || row.userId.includes(search)
+                );
+            }
+
+            // Lọc trạng thái
+            const status = statusFilter.value;
+            if (status !== 'all') {
+                filteredData = filteredData.filter(row => row.status === status);
+            }
+
+            // Lọc phòng ban
+            const department = departmentFilter.value;
+            if (department !== 'all') {
+                filteredData = filteredData.filter(row => row.department === department);
+            }
+
+            // Lọc ngày
+            const start = startDate.value ? new Date(startDate.value) : null;
+            const end = endDate.value ? new Date(endDate.value) : null;
+            if (start && end) {
+                filteredData = filteredData.filter(row => {
+                    const workday = new Date(row.workday);
+                    return workday >= start && workday <= end;
+                });
+            }
+
+            // Phân trang
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+
+            // Render bảng
+            tableBody.innerHTML = '';
+            paginatedData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-100';
+                tr.innerHTML = `
+                    <td class="border p-3">${row.userId}</td>
+                    <td class="border p-3">${row.userFullName}</td>
+                    <td class="border p-3">${row.department}</td>
+                    <td class="border p-3">${row.workday}</td>
+                    <td class="border p-3">${row.checkIn || 'N/A'}</td>
+                    <td class="border p-3">${row.checkOut || 'N/A'}</td>
+                    <td class="border p-3">
+                        <span class="${row.status === 'Present' ? 'bg-green-100 text-green-800' :
+                        row.status === 'Absent' ? 'bg-red-100 text-red-800' :
+                            row.status === 'Leave' ? 'bg-blue-100 text-blue-800' :
+                                'bg-yellow-100 text-yellow-800'
+                    } px-2 py-1 rounded-full text-xs">
+                            ${row.status === 'Present' ? 'Có mặt' :
+                        row.status === 'Absent' ? 'Nghỉ' :
+                            row.status === 'Leave' ? 'Nghỉ có phép' : 'Chưa có mặt'
+                    }
+                        </span>
+                    </td>
+                    <td class="border p-3">${row.overtime || 0}</td>
+                    <td class="border p-3">${row.note || ''}</td>
+                    <td class="border p-3 text-center">
+                        <button class="editBtn text-blue-600 hover:text-blue-800" data-id="${row.id}" aria-label="Chỉnh sửa chấm công của ${row.userFullName}">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15.828l-5.657 1.414 1.414-5.657L15.414 3.586z"></path>
+                            </svg>
+                        </button>
+                        <button class="deleteBtn text-red-600 hover:text-red-800 ml-2" data-id="${row.id}" aria-label="Xóa chấm công của ${row.userFullName}">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M9 7v12m6-12v12"></path>
+                            </svg>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Render phân trang
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            pagination.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-200'}`;
+                btn.addEventListener('click', () => {
+                    currentPage = i;
+                    renderTable();
+                });
+                pagination.appendChild(btn);
+            }
+
+            updateStats();
+        }
+
+        // Mở modal
+        function openModal(mode, record = null) {
+            modalTitle.textContent = mode === 'add' ? 'Thêm chấm công' : 'Chỉnh sửa chấm công';
+            editId = mode === 'edit' ? record.id : null;
+            userIdSelect.value = record ? record.userId : '';
+            document.getElementById('workday').value = record ? record.workday : '';
+            document.getElementById('checkIn').value = record ? record.checkIn : '';
+            document.getElementById('checkOut').value = record ? record.checkOut : '';
+            document.getElementById('status').value = record ? record.status : 'Present';
+            document.getElementById('overtime').value = record ? record.overtime : 0;
+            document.getElementById('note').value = record ? record.note : '';
+            modal.style.display = 'flex';
+        }
+
+        // Đóng modal
+        function closeModal() {
+            modal.style.display = 'none';
+            attendanceForm.reset();
+            editId = null;
+        }
+
+        // Xử lý form
+        attendanceForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const userId = userIdSelect.value;
+            const employee = employees.find(emp => emp.userId === userId);
+            const record = {
+                id: editId || Date.now(),
+                userId,
+                userFullName: employee ? employee.userFullName : '',
+                department: employee ? employee.department : '',
+                workday: document.getElementById('workday').value,
+                checkIn: document.getElementById('checkIn').value,
+                checkOut: document.getElementById('checkOut').value,
+                status: document.getElementById('status').value,
+                overtime: Number(document.getElementById('overtime').value) || 0,
+                note: document.getElementById('note').value
+            };
+
+            if (!userId || !record.workday) {
+                showToast('Vui lòng điền đầy đủ thông tin bắt buộc', 'error');
+                return;
+            }
+
+            if (editId) {
+                attendanceData = attendanceData.map(row => row.id === editId ? record : row);
+                showToast('Cập nhật chấm công thành công');
+            } else {
+                attendanceData.push(record);
+                showToast('Thêm chấm công thành công');
+            }
+
+            closeModal();
+            renderTable();
+        });
+
+        // Xử lý xóa
+        function openDeleteModal(id) {
+            recordToDelete = id;
+            deleteModal.style.display = 'flex';
+        }
+
+        let recordToDelete = null;
+        confirmDeleteBtn.addEventListener('click', () => {
+            attendanceData = attendanceData.filter(row => row.id !== recordToDelete);
+            deleteModal.style.display = 'none';
+            showToast('Xóa chấm công thành công');
+            renderTable();
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteModal.style.display = 'none';
+            recordToDelete = null;
+        });
+
+        // Sự kiện
+        addBtn.addEventListener('click', () => openModal('add'));
+        cancelBtn.addEventListener('click', closeModal);
+        searchInput.addEventListener('input', renderTable);
+        statusFilter.addEventListener('change', renderTable);
+        departmentFilter.addEventListener('change', renderTable);
+        startDate.addEventListener('change', renderTable);
+        endDate.addEventListener('change', renderTable);
+        rowsPerPageSelect.addEventListener('change', () => {
+            rowsPerPage = Number(rowsPerPageSelect.value);
+            currentPage = 1;
+            renderTable();
+        });
+
+        // Xuất Excel
+        exportBtn.addEventListener('click', () => {
+            const worksheet = XLSX.utils.json_to_sheet(filteredData.map(row => ({
+                'Mã NV': row.userId,
+                'Họ và tên': row.userFullName,
+                'Phòng ban': row.department,
+                'Ngày': row.workday,
+                'Giờ vào': row.checkIn || 'N/A',
+                'Giờ ra': row.checkOut || 'N/A',
+                'Trạng thái': row.status === 'Present' ? 'Có mặt' :
+                    row.status === 'Absent' ? 'Nghỉ' :
+                        row.status === 'Leave' ? 'Nghỉ có phép' : 'Chưa có mặt',
+                'Tăng ca (giờ)': row.overtime,
+                'Ghi chú': row.note
+            })));
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Chấm công');
+            XLSX.write_file(workbook, 'BaoCaoChamCong.xlsx');
+            showToast('Xuất báo cáo thành công');
+        });
+
+        // Nhập Excel
+        importBtn.addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+                jsonData.forEach(item => {
+                    const record = {
+                        id: Date.now() + Math.random(),
+                        userId: item['Mã NV'],
+                        userFullName: item['Họ và tên'],
+                        department: item['Phòng ban'],
+                        workday: item['Ngày'],
+                        checkIn: item['Giờ vào'],
+                        checkOut: item['Giờ ra'],
+                        status: item['Trạng thái'] === 'Có mặt' ? 'Present' :
+                            item['Trạng thái'] === 'Nghỉ' ? 'Absent' :
+                                item['Trạng thái'] === 'Nghỉ có phép' ? 'Leave' : 'Pending',
+                        overtime: Number(item['Tăng ca (giờ)']) || 0,
+                        note: item['Ghi chú'] || ''
+                    };
+                    attendanceData.push(record);
+                });
+
+                renderTable();
+                showToast('Nhập dữ liệu thành công');
+                importInput.value = '';
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Xử lý chỉnh sửa/xóa
+        tableBody.addEventListener('click', (e) => {
+            const editBtn = e.target.closest('.editBtn');
+            const deleteBtn = e.target.closest('.deleteBtn');
+            if (editBtn) {
+                const id = Number(editBtn.dataset.id);
+                const record = attendanceData.find(row => row.id === id);
+                openModal('edit', record);
+            }
+            if (deleteBtn) {
+                const id = Number(deleteBtn.dataset.id);
+                openDeleteModal(id);
+            }
+        });
+
+        // Khởi tạo
+        renderTable();
+    </script>
+</body>
+
+</html>

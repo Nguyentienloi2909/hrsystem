@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Loihieu2909@
+    volumes:
+      - sql_data:/var/opt/mssql
+      - ./backend/MyProject/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend/MyProject
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "7247:7247"
+    env_file:
+      - ./backend/MyProject/.env   # 👈 Trỏ chính xác tới file .env trong thư mục backend
+    depends_on:
+      - sqlserver
+    networks:
+      - app-network
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+volumes:
+  sql_data:
+
+networks:
+  app-network:
+    driver: bridge

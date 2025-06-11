@@ -552,12 +552,10 @@ export default class ApiService {
         if (!userId) {
             throw new Error('ID người dùng không được để trống');
         }
-        // API: http://192.168.1.126:7247/{userID}
         return this.handleRequest('get', `/LeaveRequest/${userId}`);
     }
 
     static getAllLeaveRequests() {
-        // API: http://192.168.1.126:7247/api/LeaveRequest
         return this.handleRequest('get', '/LeaveRequest');
     }
 

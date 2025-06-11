@@ -1,0 +1,22 @@
+name: next Deployment
+on:
+  push:
+    branches: [production]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy using ssh
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /services/hrsystem
+            git fetch origin 
+            git checkout production
+            git pull
+            docker compose -p hrmanagement down
+            docker compose -p hrmanagement up -d --build

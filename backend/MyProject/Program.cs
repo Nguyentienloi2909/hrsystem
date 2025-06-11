@@ -160,7 +160,7 @@ builder.Services.Configure<EmailSettings>(options =>
 builder.Services.AddTransient<IEmailService, EmailService>();
 
 var app = builder.Build();
-
+app.Urls.Add("http://0.0.0.0:7247");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

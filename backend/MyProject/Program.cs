@@ -94,18 +94,18 @@ var cloudinary = new Cloudinary(cloudinaryAccount);
 builder.Services.AddSingleton(cloudinary);
 
 
+//builder.WebHost.ConfigureKestrel(options =>
+//{
+//    options.ListenAnyIP(7247, listenOptions =>
+//    {
+//        listenOptions.UseHttps("server.pfx", "loi123456");
+//    });
+//});
+
 builder.WebHost.ConfigureKestrel(options =>
 {
-   options.ListenAnyIP(7247, listenOptions =>
-   {
-       listenOptions.UseHttps("server.pfx", "loi123456");
-   });
+    options.ListenAnyIP(7247); // Sử dụng HTTP đơn giản
 });
-
-// builder.WebHost.ConfigureKestrel(options =>
-// {
-//     options.ListenAnyIP(7247); // Sử dụng HTTP đơn giản
-// });
 
 // Thêm CORS
 builder.Services.AddCors(options =>

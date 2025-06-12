@@ -8,10 +8,10 @@ const createConnection = (url, options = {}) => {
 };
 
 const notificationConnection = () =>
-    createConnection("https://222.255.214.117:7247/notificationHub");
+    createConnection("https://hrsystem.name.vn/notificationHub");
 
 const chatConnection = () =>
-    createConnection("https://222.255.214.117:7247/chatHub", {
+    createConnection("https://hrsystem.name.vn/chatHub", {
         accessTokenFactory: () => sessionStorage.getItem("authToken"),
     });
 

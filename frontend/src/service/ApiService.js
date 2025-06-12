@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export default class ApiService {
-    static BASE_URL = "http://hrsystem.name.vn/api";
+    static BASE_URL = "https://hrsystem.name.vn/api";
 
     static getHeader() {
         const token = sessionStorage.getItem('authToken');

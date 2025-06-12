@@ -12,4 +12,9 @@ export default defineConfig({
     },
     plugins: [svgr(), react()],
     base: '/',
+    build: {
+        minify: false,        // Không nén JS/CSS
+        sourcemap: false,     // Không tạo file map
+        cssCodeSplit: false,  // Gom CSS thành 1 file
+    }
 });

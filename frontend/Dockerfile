@@ -3,7 +3,7 @@
 FROM node:18-alpine AS builder
 
 # Tạo biến môi trường tối ưu RAM cho Node
-ENV NODE_OPTIONS=--max-old-space-size=1024
+ENV NODE_OPTIONS=--max-old-space-size=2048
 
 WORKDIR /app
 COPY package*.json ./

@@ -72,10 +72,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 }
 
                 return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                context.HandleResponse(); // Prevent default redirect
+                context.Response.StatusCode = 401;
+                context.Response.ContentType = "application/json";
+                return context.Response.WriteAsync("{\"error\":\"Unauthorized\"}");
             }
+        
         };
     });
-
 
 builder.Services.AddAuthorization(options =>
 {
@@ -165,7 +172,6 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate(); // hoặc db.Database.EnsureCreated();
 }
-
 app.UseCors("AllowFrontend");
 // Configure the HTTP request pipeline.
 app.UseSwagger();
@@ -198,6 +204,7 @@ app.MapHub<ChatHub>("/chatHub");
 
 
 app.UseHttpsRedirection();
+app.UseRouting();
 
 app.MapControllers();
 

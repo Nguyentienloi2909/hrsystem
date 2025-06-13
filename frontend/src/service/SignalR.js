@@ -3,12 +3,14 @@ import * as signalR from "@microsoft/signalr";
 const createConnection = (url, options = {}) => {
     return new signalR.HubConnectionBuilder()
         .withUrl(url, options)
-        .withAutomaticReconnect()
+        .withAutomaticReconnect() 
         .build();
 };
 
 const notificationConnection = () =>
-    createConnection("https://hrsystem.name.vn/notificationHub");
+    createConnection("https://hrsystem.name.vn/notificationHub", {
+        accessTokenFactory: () => sessionStorage.getItem("authToken"),
+    });
 
 const chatConnection = () =>
     createConnection("https://hrsystem.name.vn/chatHub", {

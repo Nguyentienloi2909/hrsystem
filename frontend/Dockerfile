@@ -2,17 +2,14 @@
 # Stage 1: Build
 FROM node:18-alpine AS builder
 
-# Tạo biến môi trường tối ưu RAM cho Node
+# Tạo biến môi trường tối ưu RAM cho Node.js
 ENV NODE_OPTIONS=--max-old-space-size=2048
 
 WORKDIR /app
 COPY package*.json ./
-
 RUN npm install --legacy-peer-deps
-
 COPY . .
 RUN npm run build
-
 # Stage 2: Serve bằng nginx
 FROM nginx:alpine
 

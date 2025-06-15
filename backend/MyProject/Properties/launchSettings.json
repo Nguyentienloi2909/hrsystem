@@ -19,7 +19,7 @@
       },
       "dotnetRunMessages": true,
       "applicationUrl": "https://127.0.0.1:7247;http://127.0.0.1:7247"
-    },
+    }, 
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,

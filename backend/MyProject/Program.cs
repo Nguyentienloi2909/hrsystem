@@ -217,6 +217,6 @@ app.UseRouting();
 
 app.MapControllers();
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Hello World");
 
 app.Run();

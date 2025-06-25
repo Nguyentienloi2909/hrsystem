@@ -298,9 +298,12 @@ namespace MyProject.Service.impl
             }
 
             _dbContext.Users.Update(user);
-            _dbContext.Salaries.Update(salary);
+            if (salary != null)
+            {
+                salary.MonthSalary = dto.MonthSalary ?? user.MonthSalary;
+                _dbContext.Salaries.Update(salary);
+            }
             await _dbContext.SaveChangesAsync();
-
             var resultDto = Mappers.MapperToDto.ToDto(user);
 
             return (true, null, resultDto);

@@ -260,7 +260,7 @@ const Task = () => {
                     <Typography variant="h5" fontWeight="bold">
                         Quản lý nhiệm vụ
                     </Typography>
-                    {((sessionStorage.getItem('role') || user.role) === 'LEADER') && (
+                    {((sessionStorage.getItem('role') || user.role) === 'LEADER' || (sessionStorage.getItem('role') || user.role) === 'ADMIN') && (
                         <Button
                             variant="contained"
                             startIcon={<IconPlus />}
@@ -375,7 +375,7 @@ const Task = () => {
                                                         onEdit={handleEdit}
                                                         onDelete={handleDelete}
                                                         onUpdateStatus={handleUpdateStatus}
-                                                        role={user.role}
+                                                        role={user.role || sessionStorage.getItem('role')}
                                                     />
                                                 </TableCell>
                                             </TableRow>

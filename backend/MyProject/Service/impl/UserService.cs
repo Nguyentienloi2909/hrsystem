@@ -194,7 +194,7 @@ namespace MyProject.Service.impl
                     var uploadParams = new ImageUploadParams
                     {
                         File = new FileDescription(request.FileImage.FileName, stream),
-                        Folder = "avatars",
+                        Folder = "demo",
                         UploadPreset = "upload-s3hnsc2u",
                         Transformation = new Transformation().Width(500).Height(500).Crop("fit"),
                         PublicId = $"user_{newUser.Id}_avatar"
@@ -259,6 +259,12 @@ namespace MyProject.Service.impl
                 .FirstOrDefaultAsync(s => s.UserId == id && s.Month == month && s.Year == year && s.Display);
             salary.MonthSalary = dto.MonthSalary ?? user.MonthSalary;
 
+            if (salary != null)
+            {
+                salary.MonthSalary = dto.MonthSalary ?? user.MonthSalary;
+                _dbContext.Salaries.Update(salary);
+            }
+            
             // Kiểm tra và xử lý ảnh nếu có
             if (dto.FileImage != null && dto.FileImage.Length > 0) // Thay đổi từ || sang &&
             {
@@ -285,7 +291,7 @@ namespace MyProject.Service.impl
                 var uploadParams = new ImageUploadParams
                 {
                     File = new FileDescription(dto.FileImage.FileName, stream),
-                    Folder = "avatars",
+                    Folder = "demo",
                     UploadPreset = "upload-s3hnsc2u",
                     Transformation = new Transformation().Width(500).Height(500).Crop("fit"),
                     PublicId = $"user_{user.Id}_avatar"
@@ -298,11 +304,7 @@ namespace MyProject.Service.impl
             }
 
             _dbContext.Users.Update(user);
-            if (salary != null)
-            {
-                salary.MonthSalary = dto.MonthSalary ?? user.MonthSalary;
-                _dbContext.Salaries.Update(salary);
-            }
+            
             await _dbContext.SaveChangesAsync();
             var resultDto = Mappers.MapperToDto.ToDto(user);
 

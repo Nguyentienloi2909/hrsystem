@@ -121,7 +121,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("https://222.255.214.117:5173", "http://222.255.214.117:5175", "http://222.255.214.117:5173", "https://hrsystem.name.vn") //AllowAnyOrigin()  URL của frontend
+        policy.WithOrigins("https://222.255.214.117:5173", "http://222.255.214.117:5173", "https://hrsystem.name.vn", "http://hrsystem.name.vn") //AllowAnyOrigin()  URL của frontend
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

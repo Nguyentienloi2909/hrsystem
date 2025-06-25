@@ -180,6 +180,9 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate(); // hoặc db.Database.EnsureCreated();
 }
+app.UseHttpsRedirection();
+app.UseRouting();
+
 app.UseCors("AllowFrontend");
 // Configure the HTTP request pipeline.
 app.UseSwagger();
@@ -211,8 +214,7 @@ app.MapHub<ChatHub>("/chatHub").RequireCors("AllowFrontend");
 
 
 
-app.UseHttpsRedirection();
-app.UseRouting();
+
 
 app.MapControllers();
 

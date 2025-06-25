@@ -19,5 +19,5 @@ jobs:
             git checkout production
             git pull
             docker compose -p hrmanagement down
-            docker system prune -af
+            docker image prune -f
             docker compose -p hrmanagement up -d --build

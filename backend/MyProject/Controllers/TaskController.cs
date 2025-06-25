@@ -20,7 +20,7 @@ namespace MyProject.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "LEADER")]
+        [Authorize(Roles = "LEADER, ADMIN")]
         public async Task<IActionResult> AddTask([FromForm] TaskItemDto request)
         {
             try
@@ -41,7 +41,7 @@ namespace MyProject.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Policy = "LEADER")]
+        [Authorize(Roles = "LEADER, ADMIN")]
         public async Task<IActionResult> UpdateTask(int id, [FromForm] TaskItemDto request)
         {
             try

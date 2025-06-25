@@ -288,7 +288,7 @@ namespace MyProject.Service.impl
                     Folder = "avatars",
                     UploadPreset = "upload-s3hnsc2u",
                     Transformation = new Transformation().Width(500).Height(500).Crop("fit"),
-                    PublicId = $"user_{dto.Id}_avatar"
+                    PublicId = $"user_{user.Id}_avatar"
                 };
 
 
